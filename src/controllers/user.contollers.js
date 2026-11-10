@@ -1,11 +1,31 @@
 import {asynchandler} from "../utils/asynchandler.js"
-import {apierror} from "../utils/apiError.js"
+import {apierror} from "../utils/apierror.js"
 import {User} from "../models/user_model.js"
 import {uplodeoncloudniary} from "../utils/cloudninary.js"
 import {apiresponse} from "../utils/apiresponse.js"
 
 
-//algo for the register user controller so you can reffer this fro revision 
+
+const generateAccessTokenAndRefreshToken = async(userId) => {
+    try{
+        const user = await User.findById(userId);
+        if(!user){
+            throw new apierror(404, "User not found")
+        }
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false });
+
+
+        return { accessToken, refreshToken };
+    }
+    catch(err){
+        throw new apierror(500, "Failed to generate access token and refresh token")
+    }
+}
+
+//algo for the register user controller so you can reffer this for revision 
 
 const registerUser = asynchandler(async (req,res)=>{
 
@@ -47,8 +67,14 @@ const registerUser = asynchandler(async (req,res)=>{
         throw new apierror(409, "User with email or username already exists")
     }
 
-    const avatarlocalpath = req.files?.avatar [0]?.path;
+    const avatarlocalpath = req.files?.avatar?.[0]?.path;
     const coverimagelocalpath = req.files?.coverImage?.[0]?.path;
+
+    // let coverimagelocalpath ;
+    // if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+    //     coverimagelocalpath = req.files.coverImage[0].path;
+    // }
+            
     //check for images and avtar
     //uplode them to cloudinary and get the url
 
@@ -68,9 +94,9 @@ const registerUser = asynchandler(async (req,res)=>{
     // createuser object - create entry in db
 
     const user = await User.create({
-        fullName,
+        fullname: fullName,
         email,
-        username:tolowerCase(username),
+        username: username.toLowerCase(),
         password,
         avatar: avatar.url,
         coverImage: coverImage?.url||""
@@ -91,14 +117,93 @@ const registerUser = asynchandler(async (req,res)=>{
     // user.refreshToken = undefined;
 
     // return the response to frontend with user data and status code 201
-    res.status(201).json({
-        success: true,
-        user
-    })
-    return res.stauts(201).json(
-        new apiresponse(200, createduser, "User created successfully")
+    
+    return res.status(201).json(
+        new apiresponse(201, createduser, "User created successfully")
     )
 
 })
 
-export default registerUser 
+const loginUser = asynchandler(async (req,res)=>{
+    //req.body se daqta le leoo
+    //usernmae oe email and password from req.bod
+    //find the useer
+    //check the username and password 
+    //if matched create access tocken and refresh token
+    //save the refresh tocken and send the access tocken to the forntend 
+    //send using cookie and send the access tocken in the response body
+
+    const {username, password , email} = req.body;
+
+    if(!username || !email){
+        throw new apierror(400, "Username or email is required")
+    }
+
+    const user = await User.findOne({$or: [{username}, {email}]});
+
+    if(!user){
+        throw new apierror(404, "User not found")
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password);
+    if(!isPasswordValid){
+        throw new apierror(401, "Invalid password")
+    }
+
+
+    const { accessToken, refreshToken } = await generateAccessTokenAndRefreshToken(user._id);
+
+    //send cookies to frontend 
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+    
+
+    const option ={
+        httpOnly: true,
+        secure:true,
+    }
+
+    return res
+    .status(200)
+    .cookie("refreshToken", refreshToken, option)
+    .cookie("accessToken", accessToken, option)
+    .json(
+        new apiresponse(200, {user: loggedInUser, accessToken}, "User logged in successfully")
+    )
+
+})
+
+
+const loggOutUser = asynchandler(async (req,res)=>{
+
+    //how can you log out we dont have any email or username for now ?
+
+    //find user
+    //remove refresh tockon from db 
+
+    await User.findByIdAndUpdate(req.user._id , 
+        {
+            $set : {
+                refreshToken: undefined
+            }
+        },
+        {
+            new :true 
+        }
+    )
+
+
+    const option ={
+        httpOnly: true,
+        secure:true,
+    }
+    return res 
+    .status(200)
+    .clearCookie("refreshToken", option)
+    .clearCookie("accessToken", option)
+    .json(
+        new apiresponse(200, null, "User logged out successfully")
+    )
+})
+
+export { registerUser, loginUser, loggOutUser } 

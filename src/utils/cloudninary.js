@@ -18,10 +18,12 @@ const uplodeoncloudniary = async (localFilePath)=>{
         console.log(`${response.url}`)
 
         return response;
-    }catch(error){
-        fs.unlinkSync(localFilePath) // remove the locally saved temp file as the uplode operation failed
-    }
+    }catch(error) {
+    console.log("Cloudinary error:", error);
+    fs.unlinkSync(localFilePath);
 }
+}
+
 
 export {uplodeoncloudniary};
 
