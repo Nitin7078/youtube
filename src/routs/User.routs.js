@@ -1,9 +1,14 @@
 import { Router } from "express";
-import { registerUser, loginUser, loggOutUser }  from "../controllers/user.contollers.js";
-import {uplode} from "../middlewares/multter.js"
-import  {VerifyUserJWT}  from "../middlewares/auth.middleware.js";
+import {
+    registerUser,
+    loginUser,
+    loggOutUser,
+    refreshAccessToken
+} from "../controllers/user.contollers.js";
+import { uplode } from "../middlewares/multter.js";
+import { VerifyUserJWT } from "../middlewares/auth.middleware.js";
 
-const router = Router()
+const router = Router();
 
 router.route("/register").post(
     uplode.fields([
@@ -13,10 +18,10 @@ router.route("/register").post(
     registerUser
 );
 
-router.route("/login").post(loginUser)
+router.route("/login").post(loginUser);
 
-//secured routes 
-router.route("/logout").post(VerifyUserJWT, loggOutUser)
+// secured routes 
+router.route("/logout").post(VerifyUserJWT, loggOutUser);
+router.route("/refresh-token").post(refreshAccessToken);
 
-
-export default router
+export default router;

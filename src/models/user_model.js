@@ -83,23 +83,22 @@ userSchema.methods.generateAccessToken = function () {
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || process.env.ACCESS_TOCKEN_EXPIRY || "1d",
     }
   );
 };
 
 userSchema.methods.generateRefreshToken = function () {
-return jwt.sign(
+  return jwt.sign(
     {
       _id: this._id,
-       
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY || process.env.REFRESH_TOCKEN_EXPIRY || "10d",
     }
   );
-}
+};
 
 export const User = mongoose.model("User", userSchema);
 

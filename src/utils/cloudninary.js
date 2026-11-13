@@ -7,25 +7,33 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const uplodeoncloudniary = async (localFilePath)=>{
-    try{
-        if(!localFilePath) return ;
+const uplodeoncloudniary = async (localFilePath) => {
+    try {
+        if (!localFilePath) return null;
 
-        const response = await  cloudinary.uploader.upload(localFilePath ,{
-            resource_type:'auto'
-        })
+        const response = await cloudinary.uploader.upload(localFilePath, {
+            resource_type: "auto"
+        });
 
-        console.log(`${response.url}`)
+        // Remove local file after successful upload
+        if (fs.existsSync(localFilePath)) {
+            fs.unlinkSync(localFilePath);
+        }
 
         return response;
-    }catch(error) {
-    console.log("Cloudinary error:", error);
-    fs.unlinkSync(localFilePath);
-}
-}
+    } catch (error) {
+        console.error("Cloudinary error:", error);
+        // Remove local file if upload failed
+        if (localFilePath && fs.existsSync(localFilePath)) {
+            fs.unlinkSync(localFilePath);
+        }
+        return null;
+    }
+};
 
+const uploadOnCloudinary = uplodeoncloudniary;
 
-export {uplodeoncloudniary};
+export { uplodeoncloudniary, uploadOnCloudinary };
 
 // cloudinary.v2.uploader
 // .upload("dog.mp4", {
