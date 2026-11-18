@@ -148,7 +148,7 @@ const loggOutUser = asynchandler(async (req, res) => {
             }
         },
         {
-            new: true
+            returnDocument: 'after' 
         }
     );
 
@@ -162,9 +162,17 @@ const loggOutUser = asynchandler(async (req, res) => {
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
         .json(
-            new apiresponse(200, {}, "User logged out successfully")
+            new apiresponse(200, {}, "User logged out successfully this one ")
         );
 });
+
+//this refresh tocken generator is used to generate new access token and refresh 
+// token when the old access token expires. The refresh token is stored in the database and 
+// is used to verify the user when they request a new access token. If the refresh token is valid, 
+// a new access token and refresh token are generated and sent back to the user. 
+// If the refresh token is invalid or expired, an error is thrown.
+//simple prev token is equal to the tocken in the data base than genetrate the new access token and refresh token
+//  and send it back to the user.
 
 const refreshAccessToken = asynchandler(async (req, res) => {
     const incomingRefreshToken =
@@ -213,6 +221,8 @@ const refreshAccessToken = asynchandler(async (req, res) => {
         throw new apierror(401, error?.message || "Invalid refresh token");
     }
 });
+
+
 
 export {
     registerUser,
